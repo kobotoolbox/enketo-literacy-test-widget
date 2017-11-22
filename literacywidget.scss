@@ -1,0 +1,105 @@
+.or-appearance-literacy.simple-select {
+    input[type=text]{
+        display: none;
+    }
+    .option-wrapper {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        label {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            margin: 2px 4px;
+            &.incorrect-word{
+                //background-color: $state-danger-bg;
+                .option-label {
+                    text-decoration: line-through;
+                }
+            }
+            &.at-flash {
+               background-color: #66afe9
+            }
+            &.at-end {
+                background-color: $state-danger-bg;
+            }
+            &.unread {
+                opacity: 0.5;
+            }
+        }
+        .option-label {
+            order: 1;
+            margin: 0 auto;
+            font-size: 1.5em;
+        }
+        input[type=checkbox]{
+            order: 2;
+            margin: 10px auto 0 auto;
+            &:disabled {
+                visibility: hidden;
+            }
+        }
+    }
+    .literacy-widget{
+        &__start, 
+        &__stop,
+        &__timer{
+            display: block;
+            margin: 0 calc(100%/2 - 100px);
+            width: 200px;
+            margin-bottom: 20px;
+        }
+        &__timer{
+            display: none;
+            margin-bottom: 10px;
+            font-size: 1.8em;
+            padding: 10px;
+            border: 1px solid $gray;
+            text-align: center;
+            background: white;
+        }
+        &__report{
+            display: none;
+        }
+        .btn-reset {
+            margin-left: calc(100% - 30px);
+        }
+
+    }
+    &.flash, &.stop, &.start {
+        .literacy-widget{
+            &__timer {
+                display: block;
+            }
+            &__start {
+                display: none;
+            }
+        }
+    }
+    &.stop {
+        .literacy-widget{
+            &__stop {
+                display: none;
+            }
+        }
+    }
+    &.report {
+        .literacy-widget{
+            &__start,
+            &__stop,
+            &__timer,
+            label {
+                display: none;
+            }
+            &__report {
+                display: block;
+            }
+        }
+    }
+    &.flash:not(.note):not(.focus),
+    &.flash.question:not(.note):not(.focus):hover,
+    &.stop:not(.note):not(.focus),
+    &.stop.question:not(.note):not(.focus):hover{
+        background: #f9f96e;
+    }
+}
