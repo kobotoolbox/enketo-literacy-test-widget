@@ -18,10 +18,12 @@
                 }
             }
             &.at-flash {
-               background-color: #66afe9
+                // avoid override on touchscreens
+                background-color: #66afe9 !important;
             }
             &.at-end {
-                background-color: $state-danger-bg;
+                // avoid override on touchscreens
+                background-color: $state-danger-bg !important;
             }
             &.unread {
                 opacity: 0.5;
@@ -101,5 +103,20 @@
     &.stop:not(.note):not(.focus),
     &.stop.question:not(.note):not(.focus):hover{
         background: #f9f96e;
+    }
+}
+
+//disable touch styles
+.touch .question.or-appearance-literacy.simple-select .option-wrapper {
+    > label{
+        padding: 10px;
+        margin: 2px 4px;
+        border: none;
+        input[type="checkbox"] {
+            margin-left: auto;
+        }
+    } 
+    .option-label{
+        margin-left: 0;
     }
 }
