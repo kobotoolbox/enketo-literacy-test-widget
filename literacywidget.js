@@ -80,7 +80,7 @@ LiteracyWidget.prototype._init = function() {
 };
 
 LiteracyWidget.prototype._getCurrentModelValue = function() {
-    var context = this.props.name.substring( 0, this.props.name.lastIndexOf( '/' ) );
+    var context = this.props.name.split( '/' ).length > 3 ? this.props.name.substring( 0, this.props.name.lastIndexOf( '/' ) ) : null;
     var $closestRepeat = $( this.element ).closest( '.or-repeat' );
     var index = $( 'form.or .or-repeat[name="' + $closestRepeat.attr( 'name' ) + '"]' ).index( $closestRepeat );
     return this.options.helpers.evaluate( this.props.name, 'string', context, index );
