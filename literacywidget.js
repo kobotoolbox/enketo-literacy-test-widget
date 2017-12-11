@@ -75,6 +75,8 @@ LiteracyWidget.prototype._init = function() {
     this._addWordHandlers();
 
     if ( existingValue ) {
+        this.$input.val( existingValue );
+        this._loadValues( this._convertSpaceList( existingValue ) );
         this._setState( FINISH );
     }
 };
@@ -170,15 +172,12 @@ LiteracyWidget.prototype._addWordHandlers = function() {
     $( this.element ).on( 'change.' + this.namespace, 'input[type="checkbox"]', function() {
         if ( this.checked && that.timer.state === FLASH ) {
             that.result.flashWordIndex = that._getCheckboxIndex( this );
-            this.parentNode.classList.add( 'at-flash' );
             that._setState( START );
         } else if ( this.checked && that.timer.state === STOP ) {
             var values;
             that.result.lastWordIndex = that._getCheckboxIndex( this );
-            this.parentNode.classList.add( 'at-end' );
             values = that._getValues();
             that.$input.val( values.xmlValue ).trigger( 'change' );
-            $( this ).closest( 'label' ).nextAll( 'label' ).addClass( 'unread' );
             that._setState( FINISH );
         }
     } );
@@ -222,7 +221,7 @@ LiteracyWidget.prototype._setState = function( state ) {
     }
     switch ( state ) {
         case START:
-
+            this._updateWordCounts();
             this._hideCheckboxes();
             break;
         case STOP:
@@ -234,6 +233,7 @@ LiteracyWidget.prototype._setState = function( state ) {
             this._showCheckboxes( lastIncorrectIndex || 0 );
             break;
         case FINISH:
+            this._updateWordCounts();
             this._hideCheckboxes();
             break;
         default:
@@ -243,6 +243,17 @@ LiteracyWidget.prototype._setState = function( state ) {
 
 LiteracyWidget.prototype._updateTimer = function() {
     this.timer.element.textContent = this._formatTime( this.timer.elapsed );
+};
+
+LiteracyWidget.prototype._updateWordCounts = function() {
+    if ( this.result.flashWordIndex !== null ) {
+        this.$checkboxes.eq( this.result.flashWordIndex ).parent().addClass( 'at-flash' );
+    }
+
+    if ( this.result.lastWordIndex !== null ) {
+        this.$checkboxes.eq( this.result.lastWordIndex ).parent().addClass( 'at-end' )
+            .nextAll( 'label' ).addClass( 'unread' );
+    }
 };
 
 LiteracyWidget.prototype._formatTime = function( time ) {
@@ -289,18 +300,30 @@ LiteracyWidget.prototype._getValues = function() {
     };
 };
 
+LiteracyWidget.prototype._loadValues = function( values ) {
+    var $labels = this.$checkboxes.parent( 'label' );
+    this.timer.elapsed = values.finishTime;
+    this.result.lastWordIndex = values.finishCount !== null ? values.finishCount - 1 : null;
+    this.result.flashWordIndex = values.flashCount !== null ? values.flashCount - 1 : null;
+
+    this._updateTimer();
+    this._updateWordCounts();
+
+    values.incorrectWords.forEach( function( word ) {
+        $labels.eq( word - 1 ).addClass( 'incorrect-word' );
+    } );
+};
+
 LiteracyWidget.prototype._convertSpaceList = function( spaceList ) {
-    var arr = spaceList.split( ' ' );
-    var incorrectWords = arr.splice( 10 );
-    var finishTime = arr[ 1 ];
-    var finishCount = arr[ 2 ];
-    var finishCorrect = finishCount - incorrectWords.length;
+    var arr = spaceList.split( ' ' ).map( function( item ) {
+        return item === 'null' ? null : Number( item );
+    } );
+
     return {
         flashCount: arr[ 0 ],
-        finishTime: finishTime,
-        finishCount: finishCount,
-        finishPercentageCorrect: this._getPercentageCorrect( finishCorrect, finishCount ),
-        finishWordsPerMinute: this._getWpm( finishCorrect, finishTime )
+        finishCount: arr[ 2 ],
+        finishTime: arr[ 1 ],
+        incorrectWords: arr.splice( 10 )
     };
 };
 
