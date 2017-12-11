@@ -10,7 +10,7 @@ var pluginName = 'literacyWidget';
 var FLASH = 'flash';
 var STOP = 'stop';
 var START = 'start';
-var REPORT = 'report';
+var FINISH = 'finish';
 
 /**
  * Conduct Literacy Tests as part of an Enketo Form
@@ -75,7 +75,7 @@ LiteracyWidget.prototype._init = function() {
     this._addWordHandlers();
 
     if ( existingValue ) {
-        this._showEndScreen( this._convertSpaceList( existingValue ) );
+        this._setState( FINISH );
     }
 };
 
@@ -139,9 +139,14 @@ LiteracyWidget.prototype._addTimerHandlers = function( $startButton, $stopButton
     $stopButton.on( 'click', function() {
         clearInterval( that.timer.interval );
         that._setState( STOP );
+        $stopButton.prop( 'disabled', true );
     } );
 };
 
+/**
+ * Handlers for clicking words and checkboxes.
+ * The state determines whether these handlers actually perform any action!
+ */
 LiteracyWidget.prototype._addWordHandlers = function() {
     var that = this;
 
@@ -157,12 +162,12 @@ LiteracyWidget.prototype._addWordHandlers = function() {
     } );
 
     $( this.element ).find( '.option-label' ).on( 'click', function() {
-        if ( that.timer.state ) {
+        if ( [ START, STOP, FLASH ].indexOf( that.timer.state ) !== -1 ) {
             $( this ).closest( 'label' ).toggleClass( 'incorrect-word' );
         }
     } );
 
-    $( this.element ).on( 'change', 'input[type="checkbox"]', function() {
+    $( this.element ).on( 'change.' + this.namespace, 'input[type="checkbox"]', function() {
         if ( this.checked && that.timer.state === FLASH ) {
             that.result.flashWordIndex = that._getCheckboxIndex( this );
             this.parentNode.classList.add( 'at-flash' );
@@ -174,7 +179,7 @@ LiteracyWidget.prototype._addWordHandlers = function() {
             values = that._getValues();
             that.$input.val( values.xmlValue ).trigger( 'change' );
             $( this ).closest( 'label' ).nextAll( 'label' ).addClass( 'unread' );
-            that._showEndScreen( values );
+            that._setState( FINISH );
         }
     } );
 };
@@ -209,23 +214,27 @@ LiteracyWidget.prototype._resetCheckboxes = function() {
  * the other way around.
  */
 LiteracyWidget.prototype._setState = function( state ) {
-    this.element.classList.remove( START, STOP, FLASH, REPORT );
+    var lastIncorrectIndex;
+    this.element.classList.remove( START, STOP, FLASH, FINISH );
     this.timer.state = state;
     if ( state ) {
         this.element.classList.add( state );
     }
     switch ( state ) {
         case START:
+
             this._hideCheckboxes();
             break;
         case STOP:
-            var lastIncorrectIndex = this._getCheckboxIndex( $( this.element ).find( '.incorrect-word input[type="checkbox"]' ).last()[ 0 ] );
+            lastIncorrectIndex = this._getCheckboxIndex( $( this.element ).find( '.incorrect-word input[type="checkbox"]' ).last()[ 0 ] );
             this._showCheckboxes( ( this.result.flashWordIndex >= lastIncorrectIndex ? this.result.flashWordIndex : lastIncorrectIndex ) );
             break;
         case FLASH:
-            this._showCheckboxes();
+            lastIncorrectIndex = this._getCheckboxIndex( $( this.element ).find( '.incorrect-word input[type="checkbox"]' ).last()[ 0 ] );
+            this._showCheckboxes( lastIncorrectIndex || 0 );
             break;
-        case REPORT:
+        case FINISH:
+            this._hideCheckboxes();
             break;
         default:
             this._hideCheckboxes();
@@ -257,35 +266,17 @@ LiteracyWidget.prototype._tick = function() {
     }
 };
 
-LiteracyWidget.prototype._showEndScreen = function( values ) {
-    var content = '<h4>Completed</h4>' + [
-        'The student took ' + values.finishTime + ' seconds to read a total of ' + values.finishCount + ' words',
-        'During the whole exercise, the student read ' + values.finishPercentageCorrect + '% of words correctly.',
-        'During the whole excercise, The student read at a rate of ' + values.finishWordsPerMinute + ' correct words per minute.',
-        'At the ' + this.props.flashTime + ' second flashpoint the student was at word ' + values.flashCount + '.'
-    ].map( function( sentence ) {
-        return '<div>' + sentence + '</div>';
-    } ).join( '' );
-    $( this.element ).find( '.literacy-widget__report' ).append( content );
-    this._setState( REPORT );
-};
-
 LiteracyWidget.prototype._getValues = function() {
     var finishCount = this.result.lastWordIndex !== null ? this.result.lastWordIndex + 1 : null;
     var flashCount = this.result.flashWordIndex !== null ? this.result.flashWordIndex + 1 : null;
     var incorrectWords = $( this.element ).find( '.incorrect-word input' ).map( function() {
         return this.value;
     } ).get();
-    var finishCorrect = ( finishCount !== null ) ? finishCount - incorrectWords.length : null;
 
     return {
         flashCount: flashCount,
         finishCount: finishCount,
-        finishIncorrect: incorrectWords.length,
-        finishCorrect: finishCorrect,
-        finishWordsPerMinute: this._getWpm( finishCorrect, this.timer.elapsed ),
         finishTime: this.timer.elapsed,
-        finishPercentageCorrect: this._getPercentageCorrect( finishCorrect, finishCount ),
         incorrectWords: incorrectWords,
         xmlValue: [ flashCount, this.timer.elapsed, finishCount, null, null, null, null, null, null, null ]
             .map( function( item ) {
@@ -296,20 +287,6 @@ LiteracyWidget.prototype._getValues = function() {
             } )
             .concat( incorrectWords ).join( ' ' )
     };
-};
-
-LiteracyWidget.prototype._getWpm = function( correct, time ) {
-    if ( correct !== null && time ) {
-        return Math.round( correct * 60 / time );
-    }
-    return null;
-};
-
-LiteracyWidget.prototype._getPercentageCorrect = function( correct, total ) {
-    if ( correct !== null ) {
-        return Math.round( correct * 1000 / total ) / 10;
-    }
-    return null;
 };
 
 LiteracyWidget.prototype._convertSpaceList = function( spaceList ) {

@@ -60,15 +60,12 @@
             text-align: center;
             background: white;
         }
-        &__report{
-            display: none;
-        }
         .btn-reset {
             margin-left: calc(100% - 30px);
         }
 
     }
-    &.flash, &.stop, &.start {
+    &.flash, &.stop, &.start, &.finish {
         .literacy-widget{
             &__timer {
                 display: block;
@@ -78,23 +75,10 @@
             }
         }
     }
-    &.stop {
+    &.stop, &.finish {
         .literacy-widget{
             &__stop {
                 display: none;
-            }
-        }
-    }
-    &.report {
-        .literacy-widget{
-            &__start,
-            &__stop,
-            &__timer,
-            label {
-                display: none;
-            }
-            &__report {
-                display: block;
             }
         }
     }
