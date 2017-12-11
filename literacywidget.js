@@ -249,7 +249,6 @@ LiteracyWidget.prototype._updateWordCounts = function() {
     if ( this.result.flashWordIndex !== null ) {
         this.$checkboxes.eq( this.result.flashWordIndex ).parent().addClass( 'at-flash' );
     }
-
     if ( this.result.lastWordIndex !== null ) {
         this.$checkboxes.eq( this.result.lastWordIndex ).parent().addClass( 'at-end' )
             .nextAll( 'label' ).addClass( 'unread' );

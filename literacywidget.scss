@@ -7,7 +7,7 @@
         flex-direction: row;
         flex-wrap: wrap;
         label {
-            display: flex;
+            display: none;
             flex-direction: column;
             padding: 10px;
             margin: 2px 4px;
@@ -51,6 +51,9 @@
             width: 200px;
             margin-bottom: 20px;
         }
+        &__stop {
+            display: none;
+        }
         &__timer{
             display: none;
             margin-bottom: 10px;
@@ -67,6 +70,9 @@
     }
     &.flash, &.stop, &.start, &.finish {
         .literacy-widget{
+            label{
+                display: flex;
+            }
             &__timer {
                 display: block;
             }
@@ -75,10 +81,10 @@
             }
         }
     }
-    &.stop, &.finish {
+    &.flash, &.start {
         .literacy-widget{
             &__stop {
-                display: none;
+                display: block;
             }
         }
     }
