@@ -83,8 +83,8 @@ LiteracyWidget.prototype._init = function() {
 
 LiteracyWidget.prototype._getCurrentModelValue = function() {
     var context = this.props.name.split( '/' ).length > 3 ? this.props.name.substring( 0, this.props.name.lastIndexOf( '/' ) ) : null;
-    var $closestRepeat = $( this.element ).closest( '.or-repeat' );
-    var index = $( 'form.or .or-repeat[name="' + $closestRepeat.attr( 'name' ) + '"]' ).index( $closestRepeat );
+    var closestRepeat = this.element.closest( '.or-repeat[name]' );
+    var index = closestRepeat ? Array.prototype.slice.call( this.element.closest( 'form.or' ).querySelectorAll( '.or-repeat[name="' + closestRepeat.getAttribute( 'name' ) + '"]' ) ).indexOf( closestRepeat ) : 0;
     return this.options.helpers.evaluate( this.props.name, 'string', context, index );
 };
 
@@ -259,12 +259,12 @@ LiteracyWidget.prototype._formatTime = function( time ) {
     var hrs = ~~( time / 3600 );
     var mins = ~~( ( time % 3600 ) / 60 );
     var secs = time % 60;
-    var formattedTime = "";
+    var formattedTime = '';
     if ( hrs > 0 ) {
-        formattedTime += "" + hrs + ":" + ( mins < 10 ? "0" : "" );
+        formattedTime += '' + hrs + ':' + ( mins < 10 ? '0' : '' );
     }
-    formattedTime += "" + mins + ":" + ( secs < 10 ? "0" : "" );
-    formattedTime += "" + secs;
+    formattedTime += '' + mins + ':' + ( secs < 10 ? '0' : '' );
+    formattedTime += '' + secs;
     return formattedTime;
 };
 
