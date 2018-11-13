@@ -2,7 +2,7 @@
     "name": "enketo-literacy-test-widget",
     "description": "Enketo widget to conduct literacy tests",
     "homepage": "https://enketo.org",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "main": "./literacywidget.js",
     "keywords": [
         "enketo"
@@ -21,6 +21,6 @@
     "private": true,
     "license": "Apache-2.0",
     "dependencies": {
-        "enketo-core": "4.x.x"
+        "enketo-core": "5.x.x"
     }
 }

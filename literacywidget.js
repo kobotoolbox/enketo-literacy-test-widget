@@ -1,16 +1,14 @@
-'use strict';
-
 /**
  * Literacy Timer Widget
  */
 
-var Widget = require( 'enketo-core/src/js/Widget' );
-var $ = require( 'jquery' );
-var pluginName = 'literacyWidget';
-var FLASH = 'flash';
-var STOP = 'stop';
-var START = 'start';
-var FINISH = 'finish';
+import Widget from 'enketo-core/src/js/Widget';
+import $ from 'jquery';
+const pluginName = 'literacyWidget';
+const FLASH = 'flash';
+const STOP = 'stop';
+const START = 'start';
+const FINISH = 'finish';
 
 /**
  * Conduct Literacy Tests as part of an Enketo Form
@@ -32,13 +30,13 @@ LiteracyWidget.prototype = Object.create( Widget.prototype );
 LiteracyWidget.prototype.constructor = LiteracyWidget;
 
 LiteracyWidget.prototype._init = function() {
-    var that = this;
-    var $startButton = $( '<button class="btn btn-default literacy-widget__start" type="button">Start</button>' );
-    var $stopButton = $( '<button class="btn btn-primary literacy-widget__stop" disabled type="button">Finish</button>' );
-    var $resetButton = $( '<button class="btn-icon-only btn-reset" type="button"><i class="icon icon-refresh"> </i></button></div>' );
-    var $timer = $( '<div class="literacy-widget__timer"/>' );
-    var $report = $( '<div class="literacy-widget__report">' );
-    var existingValue;
+    const that = this;
+    const $startButton = $( '<button class="btn btn-default literacy-widget__start" type="button">Start</button>' );
+    const $stopButton = $( '<button class="btn btn-primary literacy-widget__stop" disabled type="button">Finish</button>' );
+    const $resetButton = $( '<button class="btn-icon-only btn-reset" type="button"><i class="icon icon-refresh"> </i></button></div>' );
+    const $timer = $( '<div class="literacy-widget__timer"/>' );
+    const $report = $( '<div class="literacy-widget__report">' );
+    let existingValue;
 
     this.props = this._getProps();
 
@@ -50,10 +48,7 @@ LiteracyWidget.prototype._init = function() {
 
     // Create a hidden replacement input to will serve as the 'original'. 
     // This is a very unusual approach as usually we leave the original intact.
-    this.$input = $( '<input type="text" name="' + this.props.name + '" ' + ( this.props.readonly ? 'readonly' : '' ) +
-        ( [ 'required', 'constraint', 'relevant' ].map( function( item ) {
-            return that.props[ item ] ? 'data-' + item + '="' + that.props[ item ] + '" ' : '';
-        } ).join( '' ) ) + '/>' );
+    this.$input = $( `<input type="text" name="${this.props.name}" ${this.props.readonly ? 'readonly' : ''}${[ 'required', 'constraint', 'relevant' ].map( item => that.props[ item ] ? `data-${item}="${that.props[ item ]}" ` : '' ).join( '' )}/>` );
     this.$checkboxes = $( this.element )
         .find( 'input[type="checkbox"]' )
         .addClass( 'ignore' )
@@ -82,15 +77,15 @@ LiteracyWidget.prototype._init = function() {
 };
 
 LiteracyWidget.prototype._getCurrentModelValue = function() {
-    var context = this.props.name.split( '/' ).length > 3 ? this.props.name.substring( 0, this.props.name.lastIndexOf( '/' ) ) : null;
-    var closestRepeat = this.element.closest( '.or-repeat[name]' );
-    var index = closestRepeat ? Array.prototype.slice.call( this.element.closest( 'form.or' ).querySelectorAll( '.or-repeat[name="' + closestRepeat.getAttribute( 'name' ) + '"]' ) ).indexOf( closestRepeat ) : 0;
+    const context = this.props.name.split( '/' ).length > 3 ? this.props.name.substring( 0, this.props.name.lastIndexOf( '/' ) ) : null;
+    const closestRepeat = this.element.closest( '.or-repeat[name]' );
+    const index = closestRepeat ? [ ...this.element.closest( 'form.or' ).querySelectorAll( `.or-repeat[name="${closestRepeat.getAttribute( 'name' )}"]` ) ].indexOf( closestRepeat ) : 0;
     return this.options.helpers.evaluate( this.props.name, 'string', context, index );
 };
 
 LiteracyWidget.prototype._getProps = function() {
-    var i = this.element.querySelector( 'input[type="checkbox"]' );
-    var words = this.element.querySelectorAll( '.option-wrapper label' );
+    const i = this.element.querySelector( 'input[type="checkbox"]' );
+    const words = this.element.querySelectorAll( '.option-wrapper label' );
     return {
         readonly: i.readOnly,
         flashTime: !isNaN( this.element.dataset.flash ) ? Number( this.element.dataset.flash ) : 60,
@@ -103,9 +98,9 @@ LiteracyWidget.prototype._getProps = function() {
 };
 
 LiteracyWidget.prototype._addResetHandler = function( $resetButton ) {
-    var that = this;
+    const that = this;
 
-    $resetButton.on( 'click', function() {
+    $resetButton.on( 'click', () => {
         if ( that.timer && that.timer.interval ) {
             clearInterval( that.timer.interval );
         }
@@ -129,16 +124,16 @@ LiteracyWidget.prototype._addResetHandler = function( $resetButton ) {
 };
 
 LiteracyWidget.prototype._addTimerHandlers = function( $startButton, $stopButton ) {
-    var that = this;
+    const that = this;
     this._updateTimer();
 
-    $startButton.on( 'click', function() {
+    $startButton.on( 'click', () => {
         that.timer.interval = setInterval( that._tick.bind( that ), 1000 );
         that._setState( START );
         $stopButton.prop( 'disabled', false );
     } );
 
-    $stopButton.on( 'click', function() {
+    $stopButton.on( 'click', () => {
         clearInterval( that.timer.interval );
         that._setState( STOP );
         $stopButton.prop( 'disabled', true );
@@ -150,11 +145,11 @@ LiteracyWidget.prototype._addTimerHandlers = function( $startButton, $stopButton
  * The state determines whether these handlers actually perform any action!
  */
 LiteracyWidget.prototype._addWordHandlers = function() {
-    var that = this;
+    const that = this;
 
     // TODO: if we only allow one type of click at a time, we should remove this
-    $( this.element ).on( 'click', function( evt ) {
-        var target = evt.target;
+    $( this.element ).on( 'click', evt => {
+        const target = evt.target;
         // only register clicks on checkbox itself, not on label
         if ( target.nodeName.toLowerCase() === 'input' ) {
             return true;
@@ -169,12 +164,12 @@ LiteracyWidget.prototype._addWordHandlers = function() {
         }
     } );
 
-    $( this.element ).on( 'change.' + this.namespace, 'input[type="checkbox"]', function() {
+    $( this.element ).on( `change.${this.namespace}`, 'input[type="checkbox"]', function() {
         if ( this.checked && that.timer.state === FLASH ) {
             that.result.flashWordIndex = that._getCheckboxIndex( this );
             that._setState( START );
         } else if ( this.checked && that.timer.state === STOP ) {
-            var values;
+            let values;
             that.result.lastWordIndex = that._getCheckboxIndex( this );
             values = that._getValues();
             that.$input.val( values.xmlValue ).trigger( 'change' );
@@ -213,7 +208,7 @@ LiteracyWidget.prototype._resetCheckboxes = function() {
  * the other way around.
  */
 LiteracyWidget.prototype._setState = function( state ) {
-    var lastIncorrectIndex;
+    let lastIncorrectIndex;
     this.element.classList.remove( START, STOP, FLASH, FINISH );
     this.timer.state = state;
     if ( state ) {
@@ -255,16 +250,16 @@ LiteracyWidget.prototype._updateWordCounts = function() {
     }
 };
 
-LiteracyWidget.prototype._formatTime = function( time ) {
-    var hrs = ~~( time / 3600 );
-    var mins = ~~( ( time % 3600 ) / 60 );
-    var secs = time % 60;
-    var formattedTime = '';
+LiteracyWidget.prototype._formatTime = time => {
+    const hrs = ~~( time / 3600 );
+    const mins = ~~( ( time % 3600 ) / 60 );
+    const secs = time % 60;
+    let formattedTime = '';
     if ( hrs > 0 ) {
-        formattedTime += '' + hrs + ':' + ( mins < 10 ? '0' : '' );
+        formattedTime += `${hrs}:${mins < 10 ? '0' : ''}`;
     }
-    formattedTime += '' + mins + ':' + ( secs < 10 ? '0' : '' );
-    formattedTime += '' + secs;
+    formattedTime += `${mins}:${secs < 10 ? '0' : ''}`;
+    formattedTime += `${secs}`;
     return formattedTime;
 };
 
@@ -277,19 +272,19 @@ LiteracyWidget.prototype._tick = function() {
 };
 
 LiteracyWidget.prototype._getValues = function() {
-    var finishCount = this.result.lastWordIndex !== null ? this.result.lastWordIndex + 1 : null;
-    var flashCount = this.result.flashWordIndex !== null ? this.result.flashWordIndex + 1 : null;
-    var incorrectWords = $( this.element ).find( '.incorrect-word input' ).map( function() {
+    const finishCount = this.result.lastWordIndex !== null ? this.result.lastWordIndex + 1 : null;
+    const flashCount = this.result.flashWordIndex !== null ? this.result.flashWordIndex + 1 : null;
+    const incorrectWords = $( this.element ).find( '.incorrect-word input' ).map( function() {
         return this.value;
     } ).get();
 
     return {
-        flashCount: flashCount,
-        finishCount: finishCount,
+        flashCount,
+        finishCount,
         finishTime: this.timer.elapsed,
-        incorrectWords: incorrectWords,
+        incorrectWords,
         xmlValue: [ flashCount, this.timer.elapsed, finishCount, null, null, null, null, null, null, null ]
-            .map( function( item ) {
+            .map( item => {
                 if ( item === null || typeof item === 'undefined' ) {
                     return 'null';
                 }
@@ -300,7 +295,7 @@ LiteracyWidget.prototype._getValues = function() {
 };
 
 LiteracyWidget.prototype._loadValues = function( values ) {
-    var $labels = this.$checkboxes.parent( 'label' );
+    const $labels = this.$checkboxes.parent( 'label' );
     this.timer.elapsed = values.finishTime;
     this.result.lastWordIndex = values.finishCount !== null ? values.finishCount - 1 : null;
     this.result.flashWordIndex = values.flashCount !== null ? values.flashCount - 1 : null;
@@ -308,15 +303,13 @@ LiteracyWidget.prototype._loadValues = function( values ) {
     this._updateTimer();
     this._updateWordCounts();
 
-    values.incorrectWords.forEach( function( word ) {
+    values.incorrectWords.forEach( word => {
         $labels.eq( word - 1 ).addClass( 'incorrect-word' );
     } );
 };
 
-LiteracyWidget.prototype._convertSpaceList = function( spaceList ) {
-    var arr = spaceList.split( ' ' ).map( function( item ) {
-        return item === 'null' ? null : Number( item );
-    } );
+LiteracyWidget.prototype._convertSpaceList = spaceList => {
+    const arr = spaceList.split( ' ' ).map( item => item === 'null' ? null : Number( item ) );
 
     return {
         flashCount: arr[ 0 ],
@@ -331,8 +324,8 @@ $.fn[ pluginName ] = function( options, event ) {
     options = options || {};
 
     return this.each( function() {
-        var $this = $( this );
-        var data = $this.data( pluginName );
+        const $this = $( this );
+        const data = $this.data( pluginName );
 
         if ( !this.querySelector( 'input[type="checkbox"]' ) || this.querySelector( 'input[type="checkbox"][readonly]' ) ) {
             return;
@@ -351,7 +344,7 @@ $.fn[ pluginName ] = function( options, event ) {
 };
 
 // returns its own properties so we can use this to instantiate the widget
-module.exports = {
+export default {
     'name': pluginName,
     // add selector to be used for the widget
     'selector': '.or-appearance-literacy.simple-select',
