@@ -1,10 +1,5 @@
-/**
- * Literacy Timer Widget
- */
-
-import Widget from 'enketo-core/src/js/Widget';
+import Widget from 'enketo-core/src/js/widget';
 import $ from 'jquery';
-const pluginName = 'literacyWidget';
 const FLASH = 'flash';
 const STOP = 'stop';
 const START = 'start';
@@ -13,21 +8,38 @@ const FINISH = 'finish';
 /**
  * Conduct Literacy Tests as part of an Enketo Form
  *
- * @constructor
- * @param {Element}                       element   Element to apply widget to.
- * @param {{}|{helpers: *}}                             options   options
- * @param {*=}                            event     event
  */
-function LiteracyWidget( element, options ) {
-    // set the namespace (important!)
-    this.namespace = pluginName;
-    // call the Super constructor
-    Widget.call( this, element, options );
-    this._init();
+class LiteracyWidget extends Widget {
+
+    static get selector() {
+        return '.or-appearance-literacy.simple-select';
+    }
+
+    static get helpersRequired() {
+        return [ 'evaluate' ];
+    }
+
+    get props() {
+        const props = this._props;
+        const i = this.element.querySelector( 'input[type="checkbox"]' );
+        const words = this.element.querySelectorAll( '.option-wrapper label' );
+
+        props.readonly = i.readOnly;
+        props.flashTime = !isNaN( this.element.dataset.flash ) ? Number( this.element.dataset.flash ) : 60;
+        props.name = i.name;
+        props.numberWords = words.length;
+        props.relevant = i.dataset.relevant || '';
+        props.constraint = i.dataset.constraint || '';
+        props.required = i.dataset.required || '';
+
+        return props;
+    }
+
 }
 
-LiteracyWidget.prototype = Object.create( Widget.prototype );
-LiteracyWidget.prototype.constructor = LiteracyWidget;
+
+// TODO: move these methods inside the class statement.
+// TODO: make this widget compliant with the new Enketo Core widget format and run the common tests.
 
 LiteracyWidget.prototype._init = function() {
     const that = this;
@@ -38,8 +50,12 @@ LiteracyWidget.prototype._init = function() {
     const $report = $( '<div class="literacy-widget__report">' );
     let existingValue;
 
-    this.props = this._getProps();
+    if ( !this.element.querySelector( 'input[type="checkbox"]' ) || this.element.querySelector( 'input[type="checkbox"][readonly]' ) ) {
+        console.log( 'not istan' );
 
+        return;
+    }
+    console.log( 'instantiating', this.name );
     // It is highly unusual to obtain the value from the model like this, but the form engine has attempted 
     // to load the model value in the checkboxes and failed with the first 10 items in the space-separated list.
     // For loading, a regular text input would have been better, but we would not have had the benefit of a almost
@@ -83,19 +99,6 @@ LiteracyWidget.prototype._getCurrentModelValue = function() {
     return this.options.helpers.evaluate( this.props.name, 'string', context, index );
 };
 
-LiteracyWidget.prototype._getProps = function() {
-    const i = this.element.querySelector( 'input[type="checkbox"]' );
-    const words = this.element.querySelectorAll( '.option-wrapper label' );
-    return {
-        readonly: i.readOnly,
-        flashTime: !isNaN( this.element.dataset.flash ) ? Number( this.element.dataset.flash ) : 60,
-        name: i.name,
-        numberWords: words.length,
-        relevant: i.dataset.relevant || '',
-        constraint: i.dataset.constraint || '',
-        required: i.dataset.required || ''
-    };
-};
 
 LiteracyWidget.prototype._addResetHandler = function( $resetButton ) {
     const that = this;
@@ -319,34 +322,4 @@ LiteracyWidget.prototype._convertSpaceList = spaceList => {
     };
 };
 
-$.fn[ pluginName ] = function( options, event ) {
-
-    options = options || {};
-
-    return this.each( function() {
-        const $this = $( this );
-        const data = $this.data( pluginName );
-
-        if ( !this.querySelector( 'input[type="checkbox"]' ) || this.querySelector( 'input[type="checkbox"][readonly]' ) ) {
-            return;
-        }
-
-        // only instantiate if options is an object (i.e. not a string) and if it doesn't exist already
-        if ( !data && typeof options === 'object' ) {
-            $this.data( pluginName, new LiteracyWidget( this, options, event ) );
-        }
-        // only call method if widget was instantiated before
-        else if ( data && typeof options == 'string' ) {
-            // pass the element as a parameter
-            data[ options ]( this );
-        }
-    } );
-};
-
-// returns its own properties so we can use this to instantiate the widget
-export default {
-    'name': pluginName,
-    // add selector to be used for the widget
-    'selector': '.or-appearance-literacy.simple-select',
-    'helpersRequired': [ 'evaluate' ]
-};
+export default LiteracyWidget;
