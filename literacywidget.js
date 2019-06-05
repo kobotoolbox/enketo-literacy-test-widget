@@ -24,7 +24,6 @@ class LiteracyWidget extends Widget {
         const i = this.element.querySelector( 'input[type="checkbox"]' );
         const words = this.element.querySelectorAll( '.option-wrapper label' );
 
-        props.readonly = i.readOnly;
         props.flashTime = !isNaN( this.element.dataset.flash ) ? Number( this.element.dataset.flash ) : 60;
         props.name = i.name;
         props.numberWords = words.length;
