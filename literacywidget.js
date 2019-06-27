@@ -1,5 +1,4 @@
 import Widget from 'enketo-core/src/js/widget';
-import $ from 'jquery';
 const FLASH = 'flash';
 const STOP = 'stop';
 const START = 'start';
@@ -21,10 +20,11 @@ class LiteracyWidget extends Widget {
 
     get props() {
         const props = this._props;
-        const i = this.element.querySelector( 'input[type="checkbox"]' );
+        const i = this.element.querySelector( 'input[type="text"], input[type="checkbox"]' );
         const words = this.element.querySelectorAll( '.option-wrapper label' );
 
         props.flashTime = !isNaN( this.element.dataset.flash ) ? Number( this.element.dataset.flash ) : 60;
+
         props.name = i.name;
         props.numberWords = words.length;
         props.relevant = i.dataset.relevant || '';
@@ -36,56 +36,78 @@ class LiteracyWidget extends Widget {
 
 }
 
-
 // TODO: move these methods inside the class statement.
 // TODO: make this widget compliant with the new Enketo Core widget format and run the common tests.
 
 LiteracyWidget.prototype._init = function() {
-    const that = this;
-    const $startButton = $( '<button class="btn btn-default literacy-widget__start" type="button">Start</button>' );
-    const $stopButton = $( '<button class="btn btn-primary literacy-widget__stop" disabled type="button">Finish</button>' );
-    const $resetButton = $( '<button class="btn-icon-only btn-reset" type="button"><i class="icon icon-refresh"> </i></button></div>' );
-    const $timer = $( '<div class="literacy-widget__timer"/>' );
-    const $report = $( '<div class="literacy-widget__report">' );
+    const fragment = document.createRange();
     let existingValue;
 
     if ( !this.element.querySelector( 'input[type="checkbox"]' ) || this.element.querySelector( 'input[type="checkbox"][readonly]' ) ) {
-        console.log( 'not istan' );
-
+        console.error( 'literacy widget cannot be instantiated on this question type' );
         return;
     }
-    console.log( 'instantiating', this.name );
+
+    const name = this.props.name;
+
     // It is highly unusual to obtain the value from the model like this, but the form engine has attempted 
     // to load the model value in the checkboxes and failed with the first 10 items in the space-separated list.
     // For loading, a regular text input would have been better, but we would not have had the benefit of a almost
     // complete DOM with all the words. So it's a compromise.
     existingValue = this._getCurrentModelValue();
 
-    // Create a hidden replacement input to will serve as the 'original'. 
-    // This is a very unusual approach as usually we leave the original intact.
-    this.$input = $( `<input type="text" name="${this.props.name}" ${this.props.readonly ? 'readonly' : ''}${[ 'required', 'constraint', 'relevant' ].map( item => that.props[ item ] ? `data-${item}="${that.props[ item ]}" ` : '' ).join( '' )}/>` );
-    this.$checkboxes = $( this.element )
-        .find( 'input[type="checkbox"]' )
-        .addClass( 'ignore' )
-        .removeAttr( 'name data-type-xml data-relevant data-required' )
-        .prop( 'disabled', true );
+    this.checkboxes = [ ...this.element.querySelectorAll( 'input[type="checkbox"]' ) ];
 
-    $( this.element )
-        .find( '.option-wrapper' )
-        .addClass( 'widget literacy-widget' )
-        .after( this.$input )
-        .prepend( $startButton )
-        .prepend( $timer )
-        .append( $stopButton )
-        .append( $report )
-        .append( $resetButton );
+    this.checkboxes.forEach( el => {
+        el.classList.add( 'ignore' );
+        el.removeAttribute( 'name' );
+        el.removeAttribute( 'data-type-xml' );
+        el.removeAttribute( 'data-relevant' );
+        el.removeAttribute( 'data-required' );
+        el.disabled = true;
+    } );
 
-    this._addResetHandler( $resetButton );
-    this._addTimerHandlers( $startButton, $stopButton );
+    const optionWrapper = this.element.querySelector( '.option-wrapper' );
+
+    optionWrapper.classList.add( 'widget', 'literacy-widget' );
+
+    optionWrapper.after(
+        // Create a hidden replacement input to will serve as the 'original'. 
+        // This is a very unusual approach as usually we leave the original intact.
+        fragment.createContextualFragment(
+            `<input type="text" name="${name}" ${this.props.readonly ? 'readonly' : ''}${[ 'required', 'constraint', 'relevant' ].map( item => this.props[ item ] ? `data-${item}="${this.props[ item ]}" ` : '' ).join( '' )}/>`
+        )
+    );
+
+    this.input = this.element.querySelector( `input[name="${name}"]` );
+
+    optionWrapper.prepend(
+        fragment.createContextualFragment(
+            `<button class="btn btn-default literacy-widget__start" type="button">Start</button>
+            <div class="literacy-widget__timer"/>`
+        )
+    );
+
+    const startButton = optionWrapper.querySelector( '.literacy-widget__start' );
+    //const timer = optionWrapper.querySelector( '.literacy-widget__timer' );
+
+    optionWrapper.append(
+        fragment.createContextualFragment(
+            `<button class="btn btn-primary literacy-widget__stop" disabled type="button">Finish</button>
+            <button class="btn-icon-only btn-reset" type="button"><i class="icon icon-refresh"> </i></button>`
+        )
+    );
+
+    const stopButton = optionWrapper.querySelector( '.literacy-widget__stop' );
+    const resetButton = optionWrapper.querySelector( '.btn-reset' );
+
+    this._addResetHandler( resetButton );
+    resetButton.click();
+    this._addTimerHandlers( startButton, stopButton );
     this._addWordHandlers();
 
     if ( existingValue ) {
-        this.$input.val( existingValue );
+        this.input.value = existingValue;
         this._loadValues( this._convertSpaceList( existingValue ) );
         this._setState( FINISH );
     }
@@ -98,47 +120,43 @@ LiteracyWidget.prototype._getCurrentModelValue = function() {
     return this.options.helpers.evaluate( this.props.name, 'string', context, index );
 };
 
-
-LiteracyWidget.prototype._addResetHandler = function( $resetButton ) {
-    const that = this;
-
-    $resetButton.on( 'click', () => {
-        if ( that.timer && that.timer.interval ) {
-            clearInterval( that.timer.interval );
+LiteracyWidget.prototype._addResetHandler = function( resetButton ) {
+    resetButton.addEventListener( 'click', () => {
+        if ( this.timer && this.timer.interval ) {
+            clearInterval( this.timer.interval );
         }
-        that.timer = {
+        this.timer = {
             elapsed: 0,
-            element: that.element.querySelector( '.literacy-widget__timer' ),
+            element: this.element.querySelector( '.literacy-widget__timer' ),
             interval: null,
             state: null
         };
-        that.result = {
+        this.result = {
             flashWordIndex: null,
             lastWordIndex: null
         };
-        that.$input.val( '' ).trigger( 'change' );
-        $( that.element ).find( '.literacy-widget__report' ).empty();
-        that._resetCheckboxes();
-        that._resetWords();
-        that._updateTimer();
-        that._setState( null );
-    } ).click();
+        this.input.value = '';
+        this.input.dispatchEvent( new Event( 'change' ) );
+        this._resetCheckboxes();
+        this._resetWords();
+        this._updateTimer();
+        this._setState( null );
+    } );
 };
 
-LiteracyWidget.prototype._addTimerHandlers = function( $startButton, $stopButton ) {
-    const that = this;
+LiteracyWidget.prototype._addTimerHandlers = function( startButton, stopButton ) {
     this._updateTimer();
 
-    $startButton.on( 'click', () => {
-        that.timer.interval = setInterval( that._tick.bind( that ), 1000 );
-        that._setState( START );
-        $stopButton.prop( 'disabled', false );
+    startButton.addEventListener( 'click', () => {
+        this.timer.interval = setInterval( this._tick.bind( this ), 1000 );
+        this._setState( START );
+        stopButton.disabled = false;
     } );
 
-    $stopButton.on( 'click', () => {
-        clearInterval( that.timer.interval );
-        that._setState( STOP );
-        $stopButton.prop( 'disabled', true );
+    stopButton.addEventListener( 'click', () => {
+        clearInterval( this.timer.interval );
+        this._setState( STOP );
+        stopButton.disabled = true;
     } );
 };
 
@@ -147,10 +165,9 @@ LiteracyWidget.prototype._addTimerHandlers = function( $startButton, $stopButton
  * The state determines whether these handlers actually perform any action!
  */
 LiteracyWidget.prototype._addWordHandlers = function() {
-    const that = this;
 
     // TODO: if we only allow one type of click at a time, we should remove this
-    $( this.element ).on( 'click', evt => {
+    this.element.addEventListener( 'click', evt => {
         const target = evt.target;
         // only register clicks on checkbox itself, not on label
         if ( target.nodeName.toLowerCase() === 'input' ) {
@@ -160,46 +177,51 @@ LiteracyWidget.prototype._addWordHandlers = function() {
         }
     } );
 
-    $( this.element ).find( '.option-label' ).on( 'click', function() {
-        if ( [ START, STOP, FLASH ].indexOf( that.timer.state ) !== -1 ) {
-            $( this ).closest( 'label' ).toggleClass( 'incorrect-word' );
-        }
-    } );
+    this.element.querySelectorAll( '.option-label' )
+        .forEach( el => el.addEventListener( 'click', evt => {
+            if ( [ START, STOP, FLASH ].indexOf( this.timer.state ) !== -1 ) {
+                evt.target.closest( 'label' ).classList.toggle( 'incorrect-word' );
+            }
+        } ) );
 
-    $( this.element ).on( `change.${this.namespace}`, 'input[type="checkbox"]', function() {
-        if ( this.checked && that.timer.state === FLASH ) {
-            that.result.flashWordIndex = that._getCheckboxIndex( this );
-            that._setState( START );
-        } else if ( this.checked && that.timer.state === STOP ) {
-            let values;
-            that.result.lastWordIndex = that._getCheckboxIndex( this );
-            values = that._getValues();
-            that.$input.val( values.xmlValue ).trigger( 'change' );
-            that._setState( FINISH );
+    this.element.addEventListener( 'change', evt => {
+        if ( evt.target.matches( 'input[type="checkbox"]' ) ) {
+            if ( evt.target.checked && this.timer.state === FLASH ) {
+                this.result.flashWordIndex = this._getCheckboxIndex( evt.target );
+                this._setState( START );
+            } else if ( evt.target.checked && this.timer.state === STOP ) {
+                let values;
+                this.result.lastWordIndex = this._getCheckboxIndex( evt.target );
+                values = this._getValues();
+                this.input.value = values.xmlValue;
+                this.input.dispatchEvent( new Event( 'change' ) );
+                this._setState( FINISH );
+            }
         }
     } );
 };
 
 LiteracyWidget.prototype._resetWords = function() {
-    $( this.element )
-        .find( '.incorrect-word, .at-flash, .at-end, .unread' ).removeClass( 'incorrect-word at-flash at-end unread' );
+    this.element
+        .querySelectorAll( '.incorrect-word, .at-flash, .at-end, .unread' )
+        .forEach( el => el.classList.remove( 'incorrect-word', 'at-flash', 'at-end', 'unread' ) );
 };
 
 LiteracyWidget.prototype._hideCheckboxes = function() {
-    this.$checkboxes.prop( 'disabled', true );
+    this.checkboxes.forEach( el => el.disabled = true );
 };
 
 LiteracyWidget.prototype._getCheckboxIndex = function( input ) {
-    return this.$checkboxes.index( input );
+    return this.checkboxes.indexOf( input );
 };
 
 LiteracyWidget.prototype._showCheckboxes = function( startIndex ) {
     startIndex = startIndex || 0;
-    this.$checkboxes.slice( startIndex ).prop( 'disabled', false );
+    this.checkboxes.slice( startIndex ).forEach( el => el.disabled = false );
 };
 
 LiteracyWidget.prototype._resetCheckboxes = function() {
-    this.$checkboxes.prop( 'checked', false );
+    this.checkboxes.forEach( el => el.checked = false );
 };
 
 /* 
@@ -222,11 +244,11 @@ LiteracyWidget.prototype._setState = function( state ) {
             this._hideCheckboxes();
             break;
         case STOP:
-            lastIncorrectIndex = this._getCheckboxIndex( $( this.element ).find( '.incorrect-word input[type="checkbox"]' ).last()[ 0 ] );
+            lastIncorrectIndex = this._getCheckboxIndex( [ ...this.element.querySelectorAll( '.incorrect-word input[type="checkbox"]' ) ].pop() );
             this._showCheckboxes( ( this.result.flashWordIndex >= lastIncorrectIndex ? this.result.flashWordIndex : lastIncorrectIndex ) );
             break;
         case FLASH:
-            lastIncorrectIndex = this._getCheckboxIndex( $( this.element ).find( '.incorrect-word input[type="checkbox"]' ).last()[ 0 ] );
+            lastIncorrectIndex = this._getCheckboxIndex( [ ...this.element.querySelectorAll( '.incorrect-word input[type="checkbox"]' ) ].pop() );
             this._showCheckboxes( lastIncorrectIndex || 0 );
             break;
         case FINISH:
@@ -244,11 +266,16 @@ LiteracyWidget.prototype._updateTimer = function() {
 
 LiteracyWidget.prototype._updateWordCounts = function() {
     if ( this.result.flashWordIndex !== null ) {
-        this.$checkboxes.eq( this.result.flashWordIndex ).parent().addClass( 'at-flash' );
+        this.checkboxes[ this.result.flashWordIndex ].parentElement.classList.add( 'at-flash' );
     }
     if ( this.result.lastWordIndex !== null ) {
-        this.$checkboxes.eq( this.result.lastWordIndex ).parent().addClass( 'at-end' )
-            .nextAll( 'label' ).addClass( 'unread' );
+        this.checkboxes[ this.result.lastWordIndex ].parentElement.classList.add( 'at-end' );
+
+        let index = this.result.lastWordIndex + 1;
+        while ( this.checkboxes[ index ] ) {
+            this.checkboxes[ index ].parentElement.classList.add( 'unread' );
+            index++;
+        }
     }
 };
 
@@ -258,10 +285,10 @@ LiteracyWidget.prototype._formatTime = time => {
     const secs = time % 60;
     let formattedTime = '';
     if ( hrs > 0 ) {
-        formattedTime += `${hrs}:${mins < 10 ? '0' : ''}`;
+        formattedTime += `${ hrs }:${ mins < 10 ? '0' : ''}`;
     }
-    formattedTime += `${mins}:${secs < 10 ? '0' : ''}`;
-    formattedTime += `${secs}`;
+    formattedTime += `${ mins }:${ secs < 10 ? '0' : ''}`;
+    formattedTime += `${ secs }`;
     return formattedTime;
 };
 
@@ -276,9 +303,7 @@ LiteracyWidget.prototype._tick = function() {
 LiteracyWidget.prototype._getValues = function() {
     const finishCount = this.result.lastWordIndex !== null ? this.result.lastWordIndex + 1 : null;
     const flashCount = this.result.flashWordIndex !== null ? this.result.flashWordIndex + 1 : null;
-    const incorrectWords = $( this.element ).find( '.incorrect-word input' ).map( function() {
-        return this.value;
-    } ).get();
+    const incorrectWords = [ ...this.element.querySelectorAll( '.incorrect-word input' ) ].map( el => el.value );
 
     return {
         flashCount,
@@ -297,7 +322,7 @@ LiteracyWidget.prototype._getValues = function() {
 };
 
 LiteracyWidget.prototype._loadValues = function( values ) {
-    const $labels = this.$checkboxes.parent( 'label' );
+    const labels = this.checkboxes.map( el => el.parentElement );
     this.timer.elapsed = values.finishTime;
     this.result.lastWordIndex = values.finishCount !== null ? values.finishCount - 1 : null;
     this.result.flashWordIndex = values.flashCount !== null ? values.flashCount - 1 : null;
@@ -306,7 +331,7 @@ LiteracyWidget.prototype._loadValues = function( values ) {
     this._updateWordCounts();
 
     values.incorrectWords.forEach( word => {
-        $labels.eq( word - 1 ).addClass( 'incorrect-word' );
+        labels[ word - 1 ].classList.add( 'incorrect-word' );
     } );
 };
 
