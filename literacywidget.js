@@ -20,22 +20,6 @@ class LiteracyWidget extends Widget {
         return [ 'evaluate' ];
     }
 
-    get props() {
-        const props = this._props;
-        const i = this.element.querySelector( 'input[type="text"], input[type="checkbox"]' );
-        const words = this.element.querySelectorAll( '.option-wrapper label' );
-
-        props.flashTime = !isNaN( this.element.dataset.flash ) ? Number( this.element.dataset.flash ) : 60;
-
-        props.name = i.name;
-        props.numberWords = words.length;
-        props.relevant = i.dataset.relevant || '';
-        props.constraint = i.dataset.constraint || '';
-        props.required = i.dataset.required || '';
-
-        return props;
-    }
-
     _init() {
         const fragment = document.createRange();
         let existingValue;
@@ -86,14 +70,11 @@ class LiteracyWidget extends Widget {
         );
 
         const startButton = optionWrapper.querySelector( '.literacy-widget__start' );
-        //const timer = optionWrapper.querySelector( '.literacy-widget__timer' );
 
         optionWrapper.append(
-            fragment.createContextualFragment(
-                `<button class="btn btn-primary literacy-widget__stop" disabled type="button">Finish</button>
-                <button class="btn-icon-only btn-reset" type="button"><i class="icon icon-refresh"> </i></button>`
-            )
+            fragment.createContextualFragment( '<button class="btn btn-primary literacy-widget__stop" disabled type="button">Finish</button>' )
         );
+        optionWrapper.append( this.resetButtonHtml );
 
         const stopButton = optionWrapper.querySelector( '.literacy-widget__stop' );
         const resetButton = optionWrapper.querySelector( '.btn-reset' );
@@ -105,7 +86,7 @@ class LiteracyWidget extends Widget {
 
         if ( existingValue ) {
             this.input.value = existingValue;
-            this._loadValues( this._convertSpaceList( existingValue ) );
+            this.value = existingValue;
             this._setState( FINISH );
         }
     }
@@ -187,10 +168,8 @@ class LiteracyWidget extends Widget {
                     this.result.flashWordIndex = this._getCheckboxIndex( evt.target );
                     this._setState( START );
                 } else if ( evt.target.checked && this.timer.state === STOP ) {
-                    let values;
                     this.result.lastWordIndex = this._getCheckboxIndex( evt.target );
-                    values = this._getValues();
-                    this.input.value = values.xmlValue;
+                    this.input.value = this.value;
                     this.input.dispatchEvent( new Event( 'change' ) );
                     this._setState( FINISH );
                 }
@@ -297,28 +276,50 @@ class LiteracyWidget extends Widget {
         }
     }
 
-    _getValues() {
+    _convertSpaceList( spaceList ) {
+        const arr = spaceList.split( ' ' ).map( item => item === 'null' ? null : Number( item ) );
+
+        return {
+            flashCount: arr[ 0 ],
+            finishCount: arr[ 2 ],
+            finishTime: arr[ 1 ],
+            incorrectWords: arr.splice( 10 )
+        };
+    }
+
+    get props() {
+        const props = this._props;
+        const i = this.element.querySelector( 'input[type="text"], input[type="checkbox"]' );
+        const words = this.element.querySelectorAll( '.option-wrapper label' );
+
+        props.flashTime = !isNaN( this.element.dataset.flash ) ? Number( this.element.dataset.flash ) : 60;
+
+        props.name = i.name;
+        props.numberWords = words.length;
+        props.relevant = i.dataset.relevant || '';
+        props.constraint = i.dataset.constraint || '';
+        props.required = i.dataset.required || '';
+
+        return props;
+    }
+
+    get value() {
         const finishCount = this.result.lastWordIndex !== null ? this.result.lastWordIndex + 1 : null;
         const flashCount = this.result.flashWordIndex !== null ? this.result.flashWordIndex + 1 : null;
         const incorrectWords = [ ...this.element.querySelectorAll( '.incorrect-word input' ) ].map( el => el.value );
 
-        return {
-            flashCount,
-            finishCount,
-            finishTime: this.timer.elapsed,
-            incorrectWords,
-            xmlValue: [ flashCount, this.timer.elapsed, finishCount, null, null, null, null, null, null, null ]
-                .map( item => {
-                    if ( item === null || typeof item === 'undefined' ) {
-                        return 'null';
-                    }
-                    return item;
-                } )
-                .concat( incorrectWords ).join( ' ' )
-        };
+        return [ flashCount, this.timer.elapsed, finishCount, null, null, null, null, null, null, null ]
+            .map( item => {
+                if ( item === null || typeof item === 'undefined' ) {
+                    return 'null';
+                }
+                return item;
+            } )
+            .concat( incorrectWords ).join( ' ' );
     }
 
-    _loadValues( values ) {
+    set value( value ) {
+        const values = this._convertSpaceList( value );
         const labels = this.checkboxes.map( el => el.parentElement );
         this.timer.elapsed = values.finishTime;
         this.result.lastWordIndex = values.finishCount !== null ? values.finishCount - 1 : null;
@@ -330,17 +331,6 @@ class LiteracyWidget extends Widget {
         values.incorrectWords.forEach( word => {
             labels[ word - 1 ].classList.add( 'incorrect-word' );
         } );
-    }
-
-    _convertSpaceList( spaceList ) {
-        const arr = spaceList.split( ' ' ).map( item => item === 'null' ? null : Number( item ) );
-
-        return {
-            flashCount: arr[ 0 ],
-            finishCount: arr[ 2 ],
-            finishTime: arr[ 1 ],
-            incorrectWords: arr.splice( 10 )
-        };
     }
 
 }
