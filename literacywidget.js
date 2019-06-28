@@ -7,8 +7,7 @@ const FINISH = 'finish';
 // TODO: add disable/enable functions
 
 /**
- * Conduct Literacy Tests as part of an Enketo Form
- *
+ * Conduct Literacy Tests inside an Enketo Form
  */
 class LiteracyWidget extends Widget {
 
@@ -64,7 +63,7 @@ class LiteracyWidget extends Widget {
 
         optionWrapper.prepend(
             fragment.createContextualFragment(
-                `<button class="btn btn-default literacy-widget__start" type="button">Start</button>
+                `<button class="btn btn-default literacy-widget__start" type="button" data-i18n="literacywidget.start"></button>
                 <div class="literacy-widget__timer"/>`
             )
         );
@@ -72,7 +71,7 @@ class LiteracyWidget extends Widget {
         const startButton = optionWrapper.querySelector( '.literacy-widget__start' );
 
         optionWrapper.append(
-            fragment.createContextualFragment( '<button class="btn btn-primary literacy-widget__stop" disabled type="button">Finish</button>' )
+            fragment.createContextualFragment( '<button class="btn btn-primary literacy-widget__stop" disabled type="button" data-i18n="literacywidget.finish"></button>' )
         );
         optionWrapper.append( this.resetButtonHtml );
 
