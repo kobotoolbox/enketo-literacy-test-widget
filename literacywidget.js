@@ -1,3 +1,4 @@
+import events from 'enketo-core/src/js/event';
 import Widget from 'enketo-core/src/js/widget';
 const FLASH = 'flash';
 const STOP = 'stop';
@@ -113,7 +114,7 @@ class LiteracyWidget extends Widget {
                 lastWordIndex: null
             };
             this.input.value = '';
-            this.input.dispatchEvent( new Event( 'change' ) );
+            this.input.dispatchEvent( events.Change() );
             this._resetCheckboxes();
             this._resetWords();
             this._updateTimer();
@@ -169,7 +170,7 @@ class LiteracyWidget extends Widget {
                 } else if ( evt.target.checked && this.timer.state === STOP ) {
                     this.result.lastWordIndex = this._getCheckboxIndex( evt.target );
                     this.input.value = this.value;
-                    this.input.dispatchEvent( new Event( 'change' ) );
+                    this.input.dispatchEvent( events.Change() );
                     this._setState( FINISH );
                 }
             }
