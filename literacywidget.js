@@ -225,7 +225,7 @@ class LiteracyWidget extends Widget {
                 break;
             case FLASH:
                 lastIncorrectIndex = this._getCheckboxIndex( [ ...this.element.querySelectorAll( '.incorrect-word input[type="checkbox"]' ) ].pop() );
-                this._showCheckboxes( lastIncorrectIndex || 0 );
+                this._showCheckboxes( lastIncorrectIndex ? lastIncorrectIndex !== -1 : 0 );
                 break;
             case FINISH:
                 this._updateWordCounts();
