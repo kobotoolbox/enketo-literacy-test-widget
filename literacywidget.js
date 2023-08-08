@@ -63,7 +63,6 @@ class LiteracyWidget extends Widget {
 
         this.input = this.element.querySelector( `input[name="${name}"]` );
 
-        console.log("derp");
         optionWrapper.prepend(
             fragment.createContextualFragment(
                 `<button class="btn btn-default literacy-widget__start" type="button">${t("literacywidget.start")}</button>
